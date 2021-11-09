@@ -9,7 +9,7 @@ https://youtu.be/B2MRWTKYOYU
 
 ## Specifications
 
-* CPU [U8080D](https://en.wikipedia.org/wiki/U880) @4MHz - [GDR](https://en.wikipedia.org/wiki/East_Germany) clone of [Intel 8080](https://en.wikipedia.org/wiki/Intel_8080)
+* CPU [U880](https://en.wikipedia.org/wiki/U880) @4MHz - [GDR](https://en.wikipedia.org/wiki/East_Germany) clone of [Z80](https://en.wikipedia.org/wiki/Z80)
 * 64 kB RAM (10kB used by video RAM)
 * 4 - 16 kB ROM (EPROM) 
 * TV output 
