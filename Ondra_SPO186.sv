@@ -123,11 +123,11 @@ module emu
 ///////// Default values for ports not used in this core /////////
 
 //assign ADC_BUS  = 'Z;
-//assign USER_OUT = '1;
+assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {UART_RTS, UART_DTR} = 0;
 
-assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
+//assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;  
 
@@ -176,7 +176,10 @@ wire        ioctl_download;
 wire  [7:0] ioctl_index;
 
 wire [15:0] joy;
-
+// RTC MSM6242B layout
+(* keep *) wire [64:0] RTC;
+	
+	
 hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 (
 	.clk_sys(clk_sys),
@@ -189,6 +192,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.status(status),
 	.ps2_key(ps2_key),
 	.joystick_0(joy),
+	.RTC(RTC),
 
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
@@ -230,6 +234,90 @@ ltc2308_tape ltc2308_tape
 );  
 
 //-------------------------------------------------------------------------------
+// Ondra MELODIK - sn76489_audio
+//
+wire [7:0] Parallel_Data_OUT;	
+wire NON_STB;
+
+//wire [13:0] mix_audio_o;
+//
+//sn76489_audio #(.MIN_PERIOD_CNT_G(17)) sn76489_audio
+//(  .clk_i(clk_sys),          //System clock
+//   .en_clk_psg_i(clk_snen), //PSG clock enable
+//   .ce_n_i(0),              //chip enable, active low
+//   .wr_n_i(NON_STB),        // write enable, active low
+//   .reset_n_i(reset_n),
+//   .data_i(Parallel_Data_OUT),
+//   .mix_audio_o(mix_audio_o)
+//);
+
+
+//------------------------------------------------------------
+//-- Keyboard controls
+//------------------------------------------------------------
+reg kbd_reset = 0;
+reg kbd_ROM_change = 0;
+reg kbd_scandoublerOverride = 0;
+reg old_stb = 0;    
+reg kbd_enter = 0;
+
+wire pressed = ps2_key[9];
+wire input_strobe = ps2_key[10];
+wire extended = ps2_key[8];
+wire [7:0] scancode = ps2_key[7:0];	
+
+always @(posedge clk_sys) 
+begin
+	old_stb <= input_strobe;
+   if ((old_stb != input_strobe) & (~extended))
+	begin		
+      case(scancode)
+//         8'h03: kbd_reset <= pressed;         // F5 = RESET
+//         8'h0A: if (pressed)                  // F8 = scandoubler Override
+//            kbd_scandoublerOverride <= ~kbd_scandoublerOverride;            
+//         8'h01: kbd_ROM_change <= pressed;    // F9 =  change ROM & reset!
+         8'h5a : kbd_enter <= pressed; // ENTER         
+      endcase	
+   end
+end	
+      
+		
+//-------------------------------------------------------------------------------
+//  Ondra SD
+//
+
+wire OndraSD_signal_led;
+wire OndraSD_rxd;
+wire OndraSD_txd;
+
+OndraSD #(.sysclk_frequency(50000000)) OndraSD // 50MHz
+(
+   .clk(CLK_50M),
+   .reset_in(~reset),
+   .enter_key(kbd_enter),
+   .signal_led(OndraSD_signal_led),
+   // SPI signals
+   .spi_miso(SD_MISO),
+   .spi_mosi(SD_MOSI),
+   .spi_clk(SD_SCK),
+   .spi_cs(SD_CS),
+   
+
+   // UART
+   .rxd(OndraSD_rxd),
+   .txd(OndraSD_txd)
+); 
+ 
+assign LED_RED = ~SD_CS;
+
+ 
+	
+
+//-------------------------------------------------------------------------------
+//
+//
+
+//-------------------------------------------------------------------------------
 
 wire HSync;
 wire VSync;
@@ -254,16 +342,18 @@ Ondra_SPO186_core Ondra_SPO186_core
 	.beeper(beeper),
 	.LED_GREEN(LED_GREEN),
 	.LED_YELLOW(LED_YELLOW),
-	.RELAY(LED_RED), // red led will indicate RELAY activity
+	//.RELAY(LED_RED), // red led will indicate RELAY activity
 	.joy(joy),
-	.RESERVA_IN(USER_IN[0]),
-	.RESERVA_OUT(TXD),
+	.RESERVA_IN(OndraSD_txd), //rxd
+	.RESERVA_OUT(OndraSD_rxd), // txd
 	.MGF_IN(tape_adc),
-	.ROMVersion(status[6:5])
+	.ROMVersion(status[6:5]),
+	.Parallel_Data_OUT(Parallel_Data_OUT),	
+   .NON_STB(NON_STB)	
 );
 
 
-assign USER_OUT[1:0] = {TXD, 1'b1};
+//assign USER_OUT[1:0] = {TXD, 1'b1};
 
 assign AUDIO_L = (beeper ? 16'h0FFF : 16'h00) | 
 					  (~status[7] & tape_adc ? 16'h07F0 : 16'h00);

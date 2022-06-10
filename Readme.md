@@ -5,6 +5,10 @@ And this is its implementation in Verilog for [MISTEer](https://github.com/MiSTe
 
 ## Short demo video of this core on youtube
 
+https://youtu.be/YnFbf-u1D80 
+
+
+Older video with load via serial port - not supported anymore  
 https://youtu.be/B2MRWTKYOYU
 
 ## Specifications
@@ -29,7 +33,7 @@ Shift      -> Shift
 Symbols    -> Alt  
 Ctrl       -> Ctrl  
 Numbers    -> Tab  
-ČS         -> Caps Lock (used for Czech diacritics)  
+ČS         -> Caps Lock (used for Czech diacritics)
 
 Each modifier key needs to be pressed (and hold) before pressing character key. 
 Here is mapping Ondra keys to PC Keyboard. Please note modifier keys are in different colors as invoked characters on other keys.
@@ -50,13 +54,14 @@ Advantage of this solution is that screen resolution can be programmatically cha
 * CPU
 * 64 kB RAM
 * Keyboard
-* Sound
+* Sound (7 different sound - not forming a scale - as on real HW)
 * tape load via ADC MISTer connector (line in)
-* load via serial port (MISTer user port)
+* [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) - modern HW for easier SW load from SD Card
 
 ## What is missing
 
-* [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) - modern HW for easier SW load and save from/to SD Card
+* [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) - RAW R/W support (required for [CP/M](https://sites.google.com/site/ondraspo186/8-ondra-cp-m))
+* [OndraMELODIK](https://youtu.be/u5RyUs0VGdg) - NEW HW for Ondra bringing better sound (still in development) - please give author a thumb up :)
 
 ## How to install core
 
@@ -68,30 +73,27 @@ Advantage of this solution is that screen resolution can be programmatically cha
 
 ### Options
  
+### Loading games via [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) 
 
-### Loading games via serial port (MISTer user port)
+* No extrnal HW required - Ondra SD is implemented inside FPGA
 
-**This is interim solution before [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) will be implemented to the core.**  
+#### Preparing for use
+* Create "**Ondra**" folder on your SD Card in **secondary SC card slot** 
+* Copy there "**__LOADER.BIN**" and "**_ONDRADM.BIN**" from [OndraSD.zip](https://sites.google.com/site/ondraspo186/download/9-3-hardware/OndraSD.zip?attredirects=0&d=1)
+* Copy there some game too :) Here is good source [https://sites.google.com/site/ondraspo186/download](https://sites.google.com/site/ondraspo186/download)  
+Your SD Card should look like this
 
-* You will need [Ondra Link](https://sites.google.com/site/ondraspo186/rs232/ondralink) SW on PC and some games. Here is direct [link](https://sites.google.com/site/ondraspo186/download/9-2-rom-a-utility/OndraLink32.zip?attredirects=0&d=1). Games can be found [here](https://sites.google.com/site/ondraspo186/download/9-1-hry).
-* You also need MISTer user port cable with UART to USB converter. **Please mind MISTer FPGA uses 3.3V logic and your converter MUST support it. Otherwise you will destroy your MISTer!**
-* Choose ViLi ROM in menu
-* Run Ondra Link SW on your PC, select appropriate USB to UART converter and load game you want to transfer to Ondra
-* On Ondra (MISTer) type # (Alt + e) and press Enter. Screen turns black and Ondra is waiting for UART data.
-* On Ondra Link SW click on double arrow up. This loads turbo (increase transfer speed), then it plays a sound and continue loading game itself
-* Enjoy the Ondra SPO 186 and the game :)
+![SD Card content](/pictures/SDCard.jpg)
 
-```diff
-- Once again: Please mind MISTer FPGA uses 3.3V logic and your converter MUST support it. 
-- Otherwise you will destroy your MISTer!
-- I've warned you and you do it at your own risk!
-```
-Here is simple picture how you should wire your MISTer to UART-to-USB converter. And [here](/pictures/Mister_UART.jpg) is bigger picture as plugged into MISTer.
-
-![User Port to UART USB](/pictures/UserPortToUART_USB.jpg)
+#### Using [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) 
+* Use **ViLi ROM** (Ondra greets you with message "Zdraví Vás ONDRA")
+* type # (ALT + E) and press Enter - if Ondra SD doesnt react press enter again/for longer time or reset Ondra
+* Ondra File Manager appears in few seconds after several beeps
+* Choose file or folder and press Enter to change dir or load a file
+* Shift change directory to root of SD card
 
 
-### Loading games via ACD (audio line in)
+### Loading games via audio line in
 
 * connect your audio source (cassette player, mobile, ...) to MISTer ADC (line in)
 * Choose ViLi ROM

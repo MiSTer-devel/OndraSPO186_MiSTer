@@ -1,25 +1,27 @@
 
 module Ondra_SPO186_core (
 
-	input clk_50M, 			// 50MHz main clock
-	input clk_sys,  			// 8MHz system clock 
-	input reset,
-	input [10:0] ps2_key,
-	input [24:0] ps2_mouse,	
+	input wire clk_50M, 			// 50MHz main clock
+	input wire clk_sys,  			// 8MHz system clock 
+	input wire reset,
+	input wire [10:0] ps2_key,	
 	output reg HSync,
 	output reg VSync,	
-	output HBlank,
-	output VBlank,
-	output pixel,
-	output beeper,
-	input [15:0] joy,			
+	output wire HBlank,
+	output wire VBlank,
+	output reg pixel,
+	output wire beeper,
+   output wire [4:0] AUDIO,
+	input wire [15:0] joy,			
 	output reg LED_GREEN,
 	output reg LED_YELLOW,	
 	output reg RELAY,	 
-	input RESERVA_IN,  		//rxd
+	input wire RESERVA_IN,  //rxd
 	output reg RESERVA_OUT, // txd		
-	input MGF_IN, 				// cassette line in (from ADC)
-	input [1:0] ROMVersion
+	input wire MGF_IN, 		// cassette line in (from ADC)
+	input wire [1:0] ROMVersion,
+   output reg [7:0] Parallel_Data_OUT,
+   output reg NON_STB
 );
 
 
@@ -46,7 +48,7 @@ wire io_wr_n = IORQ_n | WR_n;
 wire io_rd_n = IORQ_n | RD_n;
 wire mem_rd_n = MREQ_n | RD_n;
 wire mem_wr_n = MREQ_n | WR_n;
-wire NMI_n = 1;
+wire NMI_n = kbd_nmi;
 wire INT_n = Vcnt_out1;
 
 
@@ -167,14 +169,16 @@ k580vi53 V_Counter_8253 (
 reg [7:0] pixel_Data;
 wire pixel_Data_Load = ~(BUSAK_n | ~(clk_div[0] & clk_div[1] & clk_div[2]));
 wire CLR_pixel_Data = (Vcnt_out0 | Hcnt_out2);
-assign pixel = pixel_Data[7] & ~CLR_pixel_Data;
 
 always @(posedge clk_sys)
 begin
 	if (pixel_Data_Load)
 		pixel_Data <= data_VRAM_out;
-	else 	
+	else if (CLR_pixel_Data)
+		pixel_Data <= 8'h00;
+	else 			
 		pixel_Data <= { pixel_Data[6:0], 1'b0 };
+	pixel <= pixel_Data[7] & ~CLR_pixel_Data;
 end
   
   
@@ -203,14 +207,16 @@ end
   
 
 // generator HSync   D35A, R59, C37
-// Perioda 64.0417us = 16kHz, log1 58,3750us, log0 zbytek 5,6667us (= 176kHz)  - log 0 vyvolána pos edge HOut1
+// Perioda 64.0417us = 16kHz, log0 4,4us - log 0 vyvolána pos edge HOut1
 reg [17:0] HPulse;
+reg Hcnt_out1_last;
 
-always @(negedge Hcnt_out1 or posedge clk_50M)
+always @(posedge clk_sys)
 begin
-	if (~Hcnt_out1)
-	begin
-		HPulse <= 50_000_000 / 176_469;
+	Hcnt_out1_last <= Hcnt_out1;
+	if (~Hcnt_out1_last & Hcnt_out1)
+	begin		
+		HPulse <= 30; // = 4.40 us
 		HSync <= 1'b0;
 	end
 	else if (HPulse == 18'h0)
@@ -221,15 +227,17 @@ end
 
 
 // generator VSync D35B, R58, C39
-// perioda 19.9757083ms = 50Hz, log1 19.8383333ms, log0 0,137375ms = 137.375us (= 7.3kHz) 
+// perioda 19.9757083ms = 50Hz, log0 120.4 us
 // log 0 vyvolana pos edge V OUT 1
 reg [17:0] VPulse;
+reg Vcnt_out1_last; 
 
-always @(negedge Vcnt_out1 or posedge clk_50M)
+always @(posedge clk_sys)
 begin
-	if (~Vcnt_out1)
+	Vcnt_out1_last <= Vcnt_out1;
+	if (~Vcnt_out1_last & Vcnt_out1)
 	begin
-		VPulse <= 50_000_000 / 7_279;
+		VPulse <= 960; // = 120.4 us
 		VSync <= 1'b0;
 	end
 	else if (VPulse == 18'h0)
@@ -245,7 +253,7 @@ end
 
 
 (* keep *) wire BUSY;
-reg NON_STB;
+//reg NON_STB;
 // wire RESERVA_IN;  //rxd
 // reg RESERVA_OUT; // txd
 reg [2:0] SND;
@@ -261,19 +269,24 @@ wire [4:0] row_KJ = (A[3:0] == 4'b1001) ? row_Joystick : row_Keyboard;
  
 //--------------------- keyboard  ---------------------------------
 wire [4:0] row_Keyboard;
+wire kbd_nmi;
+wire kbd_hardreset;
+
  
 keyboard keyboard (
-	.reset(reset), 
-	.clk(clk_sys), 
-	.ps2_key(ps2_key), 
-	.row(row_Keyboard), 
-	.column(A[3:0])
+   .reset(reset), 
+   .clk(clk_sys), 
+   .ps2_key(ps2_key), 
+   .row(row_Keyboard), 
+   .column(A[3:0]),
+   .kbd_nmi(kbd_nmi),
+   .kbd_hardreset(kbd_hardreset)
 );
-
+ 
 
 //--------------------- parallel data out -------------------------
 wire clk_Parallel_port = (io_wr_n | A[1]); // port A1
-reg [7:0] Parallel_Data_OUT;
+//reg [7:0] Parallel_Data_OUT;
 always @(posedge clk_Parallel_port)
 	Parallel_Data_OUT <= DOut;
 

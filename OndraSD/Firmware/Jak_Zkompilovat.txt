@@ -1,0 +1,5 @@
+
+make
+
+// D:\SW_development\ZPURomGen2\ZPURomGen2\bin\Debug>ZPURomGen2.exe D:\SW_development\FPGA\ZPU_serial\HelloTinyZPU.bin > xxx.txt & notepad xxx.txt
+

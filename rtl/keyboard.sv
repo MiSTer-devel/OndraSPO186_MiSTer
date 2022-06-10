@@ -7,21 +7,22 @@ module keyboard (
 		input        clk,
 	
 		input [10:0] ps2_key,			
-		input [3:0] column,
-		output [4:0] row
+		input  [3:0] column,
+		output [4:0] row,      
+		output kbd_nmi,
+		output reg kbd_hardreset
 );
 	
 wire pressed = ps2_key[9];
-wire  input_strobe = ~ps2_key[8];
+wire input_strobe = ~ps2_key[8];
 wire extended = ps2_key[8];
 wire [7:0] code = ps2_key[7:0];	
 reg [4:0]keys[14:0];
 wire shift;
-reg capsLock;
 reg shiftL;
 reg shiftR;
 reg shiftExtra; // used when I need use shift to map extra PC key
-assign shift = shiftExtra & ((shiftL & shiftR) ^ capsLock);
+assign shift = shiftExtra & (shiftL & shiftR);
  
 reg ctrlR;
 reg ctrlL;
@@ -45,8 +46,13 @@ assign row = { keys[column][0],
 
 reg old_stb;
 reg old_reset = 0;
+reg [8:0] kbd_nmi_clk = 8'h00;
 
+assign kbd_nmi = (kbd_nmi_clk == 8'h00);
 
+initial begin   
+   kbd_hardreset <= 1;
+end
 
 always @(posedge clk) 
 begin
@@ -54,6 +60,9 @@ begin
 	old_stb <= ps2_key[10];
 	old_reset <= reset;
 	
+   if (~(kbd_nmi_clk == 8'h00))
+      kbd_nmi_clk <= kbd_nmi_clk - 8'd1;
+      
 	if(~old_reset & reset)
 	begin
 		keys[00] <= 5'b11111;
@@ -72,7 +81,6 @@ begin
 		keys[13] <= 5'b11111;
 		keys[14] <= 5'b11111;
 		
-		capsLock <= 0;
 		shiftL <= 1;
 		shiftR <= 1;
 		shiftExtra <= 1;
@@ -80,6 +88,9 @@ begin
 		ctrlL <= 1;
 		altR <= 1;
 		altL <= 1;
+		kbd_nmi_clk <= 8'h00;
+		kbd_hardreset <= 1;
+      kbd_nmi_clk <= 8'hFF;
 	end
 		
 	keys[02][0] <= alt; // (key 31) CHARS-SPECIAL CHARS TOGGLE
@@ -108,11 +119,14 @@ begin
 
 						
 				//8'h76 : stop <= ~pressed; //  STOP = ESC		
-				8'h58 : if (~pressed) capsLock <= ~capsLock ; //  toggle Caps Lock
+				//8'h58 : if (~pressed) capsLock <= ~capsLock ; //  toggle Caps Lock
 						
 				8'h14 : ctrlR <= ~pressed; // Ctrl (right)
-				8'h11 : altR <= ~pressed;  // Alt (right)					
-					
+				8'h11 : altR <= ~pressed;  // Alt (right)	
+
+
+				8'h71 : if (~(ctrl | alt) | ~kbd_nmi) // CTRL + ALT + Delete
+					kbd_nmi_clk <= 8'h0F;
 			endcase	
 		end
 		else
@@ -121,8 +135,10 @@ begin
 			case(code)       
 				8'h14 : ctrlL <= ~pressed; // Ctrl (left)
 				8'h11 : altL <= ~pressed;  // Alt (left)	
-									
-			
+								
+				8'h66 : if (~(ctrl | alt) | ~kbd_hardreset) // CTRL + ALT + Backspace
+					kbd_hardreset <= ~pressed;	
+					
 				// column 0 = pin 1
 				8'h15 : keys[00][0] <= ~pressed; // (key 01) Q 1 !
 				8'h24 : keys[00][1] <= ~pressed; // (key 03) E 3 #
