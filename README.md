@@ -1,7 +1,7 @@
 # Ondra SPO 186
 ![Ondra SPO 186 image](/pictures/Ondra_th.jpg)  
-[Ondra SPO 186](https://cs.wikipedia.org/wiki/Ondra_(po%C4%8D%C3%ADta%C4%8D)) is [Czechoslovakian](https://en.wikipedia.org/wiki/Czechoslovakia) 8-bit computer developed in 1985 in [Tesla Liberec](https://en.wikipedia.org/wiki/Tesla_(Czechoslovak_company)) by [Ing. Eduard Smutný](https://cs.wikipedia.org/wiki/Eduard_Smutn%C3%BD), Ing. Tomáš Smutný a Ing. Jan Mercl as a cheap school and home computer. Tesla produced about 2000 Ondra computers.
-And this is its implementation in Verilog for [MISTEer](https://github.com/MiSTer-devel/Main_MiSTer/wiki) FPGA.
+[Ondra SPO 186](https://cs.wikipedia.org/wiki/Ondra_(po%C4%8D%C3%ADta%C4%8D)) is a [Czechoslovakian](https://en.wikipedia.org/wiki/Czechoslovakia) 8-bit computer developed in 1985 in [Tesla Liberec](https://en.wikipedia.org/wiki/Tesla_(Czechoslovak_company)) by [Ing. Eduard Smutný](https://cs.wikipedia.org/wiki/Eduard_Smutn%C3%BD), Ing. Tomáš Smutný a Ing. Jan Mercl as a cheap school and home computer. Tesla produced about 2000 Ondra computers.
+And this is its implementation in Verilog for [MiSTer](https://github.com/MiSTer-devel/Main_MiSTer/wiki) FPGA.
 
 ## Short demo video of this core on youtube
 
@@ -55,7 +55,7 @@ Advantage of this solution is that screen resolution can be programmatically cha
 * 64 kB RAM
 * Keyboard
 * Sound (7 different sound - not forming a scale - as on real HW)
-* tape load via ADC MISTer connector (line in)
+* tape load via ADC MiSTer connector (line in)
 * [Ondra SD](https://sites.google.com/site/ondraspo186/4-rom-card-sd) - modern HW for easier SW load from SD Card
 
 ## What is missing
@@ -65,9 +65,9 @@ Advantage of this solution is that screen resolution can be programmatically cha
 
 ## How to install core
 
-* copy file **Ondra_SPO186_########.rbf** from **[releases](/releases)** folder to your MISTer SD card to **Computer** folder
+* copy file **Ondra_SPO186_########.rbf** from **[releases](/releases)** folder to your MiSTer SD card to **Computer** folder
 (*######## stands here for date of version - you might want to delete earlier from SD card if you have some*)
-* in MISTer menu navigate to Ondra_SPO186 item and start the core
+* in MiSTer menu navigate to Ondra_SPO186 item and start the core
 
 ## How to start
 
@@ -95,7 +95,7 @@ Your SD Card should look like this
 
 ### Loading games via audio line in
 
-* connect your audio source (cassette player, mobile, ...) to MISTer ADC (line in)
+* connect your audio source (cassette player, mobile, ...) to MiSTer ADC (line in)
 * Choose ViLi ROM
 * press any key. Screen turn black and will flicker time to time. You can see text .KÓD 1. This is ok. Ondra turn off screen to gain more time for CPU and text .KÓD x will change as game will be loading to Ondra (x will raise from 1).
 * start playing WAV file
@@ -110,4 +110,4 @@ Your SD Card should look like this
 * https://github.com/omikron88/jondra
 * https://www.clous.cz/ondra-spo-186/
 
-Some of them are only in Czech or Slovak, but Google translator is your friend :)
+Some of them are only in Czech or Slovak, but Google translate is your friend :)
