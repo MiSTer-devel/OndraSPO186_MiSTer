@@ -14,7 +14,7 @@ module keyboard (
 );
 	
 wire pressed = ps2_key[9];
-wire input_strobe = ~ps2_key[8];
+wire input_strobe = ps2_key[10];
 wire extended = ps2_key[8];
 wire [7:0] code = ps2_key[7:0];	
 reg [4:0]keys[14:0];
@@ -57,7 +57,7 @@ end
 always @(posedge clk) 
 begin
 	    
-	old_stb <= ps2_key[10];
+	old_stb <= input_strobe;
 	old_reset <= reset;
 	
    if (~(kbd_nmi_clk == 8'h00))
@@ -98,7 +98,7 @@ begin
 	keys[04][0] <= shift;
 		
 		
-	if(old_stb != ps2_key[10]) 
+	if(old_stb != input_strobe) 
 	begin		
 		if (extended) 
 		begin

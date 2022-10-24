@@ -203,22 +203,24 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 
 
-///////////////////////   CLOCKS   ///////////////////////////////
-
+//-------------------------------------------------------------------------------
+//  Clocks
+//
 wire locked;
-wire clk_sys; // 8MHz clock
+wire clk_sys;  // 8 MHz clock
+wire clk_snen; // 4 MHz
 
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
+	.outclk_1(clk_snen),
 	.locked(locked)
 );
 
 wire reset = RESET | status[0] | buttons[1];
 
-//////////////////////////////////////////////////////////////////
 
 //-------------------------------------------------------------------------------
 //  Cassette audio in 
@@ -233,28 +235,38 @@ ltc2308_tape ltc2308_tape
 	.active(tape_adc_act)
 );  
 
+
 //-------------------------------------------------------------------------------
-// Ondra MELODIK - sn76489_audio
+//  Ondra MELODIK - sn76489_audio
 //
+
 wire [7:0] Parallel_Data_OUT;	
 wire NON_STB;
+wire [13:0] mix_audio_o;
+reg  ondra_melodik_clk_enable;
 
-//wire [13:0] mix_audio_o;
+always @(posedge reset or negedge NON_STB)
+begin
+  if (reset)
+    ondra_melodik_clk_enable <= 0;
+  else
+    ondra_melodik_clk_enable <= 1;
+end
+
+sn76489_audio #(.MIN_PERIOD_CNT_G(17)) sn76489_audio
+(  .clk_i(clk_sys),                                     //System clock
+   .en_clk_psg_i(clk_snen & ondra_melodik_clk_enable),  //PSG clock enable
+   .ce_n_i(0),                                          //chip enable, active low
+   .wr_n_i(NON_STB),                                    // write enable, active low   
+   .data_i(Parallel_Data_OUT),
+   .mix_audio_o(mix_audio_o)
+);
+
+
+//------------------------------------------------------------
+//  Keyboard controls
 //
-//sn76489_audio #(.MIN_PERIOD_CNT_G(17)) sn76489_audio
-//(  .clk_i(clk_sys),          //System clock
-//   .en_clk_psg_i(clk_snen), //PSG clock enable
-//   .ce_n_i(0),              //chip enable, active low
-//   .wr_n_i(NON_STB),        // write enable, active low
-//   .reset_n_i(reset_n),
-//   .data_i(Parallel_Data_OUT),
-//   .mix_audio_o(mix_audio_o)
-//);
 
-
-//------------------------------------------------------------
-//-- Keyboard controls
-//------------------------------------------------------------
 reg kbd_reset = 0;
 reg kbd_ROM_change = 0;
 reg kbd_scandoublerOverride = 0;
@@ -272,9 +284,7 @@ begin
    if ((old_stb != input_strobe) & (~extended))
 	begin		
       case(scancode)
-//         8'h03: kbd_reset <= pressed;         // F5 = RESET
-//         8'h0A: if (pressed)                  // F8 = scandoubler Override
-//            kbd_scandoublerOverride <= ~kbd_scandoublerOverride;            
+//         8'h03: kbd_reset <= pressed;         // F5 = RESET   
 //         8'h01: kbd_ROM_change <= pressed;    // F9 =  change ROM & reset!
          8'h5a : kbd_enter <= pressed; // ENTER         
       endcase	
@@ -301,8 +311,6 @@ OndraSD #(.sysclk_frequency(50000000)) OndraSD // 50MHz
    .spi_mosi(SD_MOSI),
    .spi_clk(SD_SCK),
    .spi_cs(SD_CS),
-   
-
    // UART
    .rxd(OndraSD_rxd),
    .txd(OndraSD_txd)
@@ -310,14 +318,10 @@ OndraSD #(.sysclk_frequency(50000000)) OndraSD // 50MHz
  
 assign LED_RED = ~SD_CS;
 
- 
-	
 
 //-------------------------------------------------------------------------------
+//  Ondra core
 //
-//
-
-//-------------------------------------------------------------------------------
 
 wire HSync;
 wire VSync;
@@ -353,12 +357,13 @@ Ondra_SPO186_core Ondra_SPO186_core
 );
 
 
-//assign USER_OUT[1:0] = {TXD, 1'b1};
-
 assign AUDIO_L = (beeper ? 16'h0FFF : 16'h00) | 
-					  (~status[7] & tape_adc ? 16'h07F0 : 16'h00);
+					  (~status[7] & tape_adc ? 16'h07F0 : 16'h00) |
+					  { 2'b00, mix_audio_o };
 assign AUDIO_R = (beeper ? 16'h0FFF : 16'h00) | 
-					  (~status[7] & tape_adc ? 16'h07F0 : 16'h00);
+					  (~status[7] & tape_adc ? 16'h07F0 : 16'h00) |
+					  { 2'b00, mix_audio_o };
+					  
 assign CLK_VIDEO = clk_sys;
 assign CE_PIXEL = 1;
 assign VGA_R = pixel ? 8'hFF : 8'h00;
