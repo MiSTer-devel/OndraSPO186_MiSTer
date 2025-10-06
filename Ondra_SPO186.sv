@@ -26,7 +26,7 @@ module emu
 	input         RESET,
 
 	//Must be passed to hps_io module
-	inout  [45:0] HPS_BUS,
+	inout  [48:0] HPS_BUS,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        CLK_VIDEO,
@@ -47,6 +47,14 @@ module emu
 	output        VGA_DE,    // = ~(VBlank | HBlank)
 	output        VGA_F1,
 	output [1:0]  VGA_SL,
+	output        VGA_SCALER, // Force VGA scaler
+	output        VGA_DISABLE, // analog out is off
+
+	input  [11:0] HDMI_WIDTH,
+	input  [11:0] HDMI_HEIGHT,
+	output        HDMI_FREEZE,
+	output        HDMI_BLACKOUT,
+	output        HDMI_BOB_DEINT,
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -61,6 +69,7 @@ module emu
 	// b[0]: osd button
 	output  [1:0] BUTTONS,
 
+	input         CLK_AUDIO, // 24.576 MHz
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,   // 1 - signed audio samples, 0 - unsigned
@@ -133,6 +142,11 @@ assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DD
 
 assign VGA_SL = 0;
 assign VGA_F1 = 0;
+assign VGA_SCALER  = 0;
+assign VGA_DISABLE = 0;
+assign HDMI_FREEZE = 0;
+assign HDMI_BLACKOUT = 0;
+assign HDMI_BOB_DEINT = 0;
 
 assign AUDIO_S = 0;
 assign AUDIO_MIX = 3;
@@ -164,7 +178,7 @@ localparam CONF_STR = {
 	"V,v",`BUILD_DATE 
 };
 
-wire forced_scandoubler = 1;
+wire forced_scandoubler;
 wire  [1:0] buttons;
 wire [31:0] status;
 wire [10:0] ps2_key;
@@ -180,12 +194,13 @@ wire [15:0] joy;
 (* keep *) wire [64:0] RTC;
 	
 	
-hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
+hps_io #(.CONF_STR(CONF_STR)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
+	.EXT_BUS(),
+	.gamma_bus(),
 
-	.conf_str(CONF_STR),
 	.forced_scandoubler(forced_scandoubler),
 
 	.buttons(buttons),
